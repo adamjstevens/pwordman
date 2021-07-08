@@ -52,12 +52,12 @@ char* generate_password(int n) {
 
 void handle_generate_command(int argc, char** argv) {
     if (argc != 3) return;
-    FILE* file = fopen(PWORD_FILE, "a");
+    // FILE* file = fopen(PWORD_FILE, "a");
     char* domain = argv[2];
     char* pass = generate_password(PASSWORD_LENGTH);
-    fprintf(file, "%s %s\n", domain, pass);
+    // fprintf(file, "%s %s\n", domain, pass);
     printf("Added password for %s\n%s\n", domain, pass);
-    fclose(file);
+    // fclose(file);
 }
 
 passwords* read_file(void) {
