@@ -1,11 +1,24 @@
 #ifndef PWORDMAN
 #define PWORDMAN
 
-#define PASSWORD_LENGTH 23
-#define PWORD_FILE "./.pwm/list.pw"
+// STANDARD LIBRARIES
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <unistd.h>
+
+// CRYPTO LIBRARIES
+#include <openssl/rand.h>
+#include <openssl/sha.h>
+
+// HEADER FILES
+#include "pwm_crypto.h"
+#include "constants.h"
 
 typedef struct {
-    char domain[50];
+    char username[INPUT_LIMIT];
+    char domain[INPUT_LIMIT];
     char password[PASSWORD_LENGTH];
 } pword;
 
@@ -14,19 +27,9 @@ typedef struct {
     int n;
 } passwords;
 
-/*
-Generates a random character (ASCII-readable)
-returns: Random char
-*/
-char random_char(void);
-
-/*
-Generates a random password 
-params:
-    n: Length of the password 
-returns: Secure, random password of length n
-*/
-char* generate_password(int n);
+typedef struct {
+    char* iv; 
+} CONFIG;
 
 /*
 Handles a generate command from the usr
@@ -37,15 +40,35 @@ void handle_generate_command(int argc, char** argv);
 /*
 Gets the password for a given domain
 params:
-    domain: Domain of the password
+    argv: arguments of the program
 returns: Password of said domain
 */
-char* get_pword(char* domain);
+char* get_pword(char** argv);
 
 /*
 Reads the file from the passwords
 returns: Array of pword types
 */
 passwords* read_file(void);
+
+/*
+Gets a line of input through the command line 
+params:
+    prompt: Prompt for the user 
+returns: text input from the user
+*/
+char* input(char* prompt);
+
+/*
+Reads the config file using CONFIG_FILENAME
+returns: CONFIG struct pointer
+*/
+CONFIG* read_config(void);
+
+/*
+Generates an initial config file (generates iv, etc)
+returns: CONFIG struct pointer
+*/
+CONFIG* generate_config(void);
 
 #endif

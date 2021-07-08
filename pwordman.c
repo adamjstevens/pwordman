@@ -1,16 +1,21 @@
-// STANDARD LIBRARIES
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-
-// CRYPTO LIBRARIES
-#include <openssl/rand.h>
-
-// HEADER FILES
 #include "pwordman.h"
 
 int main(int argc, char** argv) {
+    printf("PWORDMAN\n");
+
+    CONFIG* config;
+    if (access(".pwm/config", F_OK) == 0) {
+        config = read_config();
+    } else {
+        config = generate_config();
+    }
+
+    char* password = input("Enter your password");
+    unsigned char key[SHA256_DIGEST_LENGTH + 1];
+    SHA256_CALC(password, key);
+
+    //printf("key: %s\niv: %s\n", key, config->iv);
+
     if (argc == 1) {
         printf("Use ./pwordman help\n");
     } else if (strcmp(argv[1], "generate") == 0 || 
@@ -19,45 +24,21 @@ int main(int argc, char** argv) {
     } else if (strcmp(argv[1], "read") == 0) {
         read_file();
     } else if (strcmp(argv[1], "get") == 0 || argc == 3) {
-        get_pword(argv[2]);
+        get_pword(argv);
     }
+
     return 0;
 }
 
-char random_char(void) {
-    char buffer[1];
-
-    while (1) {
-        int rc = RAND_bytes(buffer, 1);
-        if (rc != 1) continue;
-        if (buffer[0] < 33 || buffer[0] > 126) continue;
-        break;
-    }
-
-    return buffer[0];
-}
-
-char* generate_password(int n) {
-    char* output = malloc(n + 1);
-    memset(output, 0, sizeof(output));
-
-    int i = 0;
-    for (i = 0; i < n; i++) {
-        output[i] = random_char();
-    }
-    output[i] = '\0';
-
-    return output;
-}
-
 void handle_generate_command(int argc, char** argv) {
-    if (argc != 3) return;
-    // FILE* file = fopen(PWORD_FILE, "a");
-    char* domain = argv[2];
+    if (argc != 4) return;
+    FILE* file = fopen(PWORD_FILE, "a");
+    char* username = argv[2];
+    char* domain = argv[3];
     char* pass = generate_password(PASSWORD_LENGTH);
-    // fprintf(file, "%s %s\n", domain, pass);
+    fprintf(file, "%s %s %s\n", username, domain, pass);
     printf("Added password for %s\n%s\n", domain, pass);
-    // fclose(file);
+    fclose(file);
 }
 
 passwords* read_file(void) {
@@ -69,12 +50,15 @@ passwords* read_file(void) {
     char* line = malloc(len);
     ssize_t read;
     while ((read = getline(&line, &len, file)) != -1) {
-        char* domain = malloc(50);
+        char* username = malloc(INPUT_LIMIT);
+        char* domain = malloc(INPUT_LIMIT);
         char* password = malloc(PASSWORD_LENGTH);
-        domain = strtok(line, " ");
+        username = strtok(line, " ");
+        domain = strtok(NULL, " ");
         password = strtok(NULL, " ");
 
         pword* p = malloc(sizeof(pword));
+        strcpy(p->username, username);
         strcpy(p->domain, domain);
         strcpy(p->password, password);
         // printf("%s %s\n", p->domain, p->password);
@@ -90,15 +74,56 @@ passwords* read_file(void) {
     return output;
 }
 
-char* get_pword(char* domain) {
+char* get_pword(char** argv) {
     passwords* ps = read_file();
 
+    char* username = argv[2];
+    char* domain = argv[3];
+
     for (int i = 0; i < ps->n; i++) {
-        if (strcmp(ps->p[i].domain, domain) == 0) {
+        if (strcmp(ps->p[i].domain, domain) == 0 &&
+                strcmp(ps->p[i].username, username) == 0) {
             printf("%s\n", ps->p[i].password);
             return ps->p[i].password;
         }
     }
 
     return NULL;
+}
+
+char* input(char* prompt) {
+    printf("%s: ", prompt);
+    char* inp = malloc(INPUT_LIMIT);
+    fgets(inp, INPUT_LIMIT, stdin);
+    return inp;
+}
+
+CONFIG* read_config(void) {
+    //printf("READING CONFIG FILE\n");
+    CONFIG* output = malloc(sizeof(CONFIG));
+    output->iv = malloc(IV_LEN + 1);
+    FILE* configFile = fopen(CONFIG_FILENAME, "r");
+    fscanf(configFile, "iv %s", output->iv);
+    fclose(configFile);
+
+    //printf("READ COMPLETE\n");
+
+    return output;
+}
+
+CONFIG* generate_config(void) {
+    //printf("GENERATING CONFIG FILE...\n");
+
+    FILE* configFile = fopen(CONFIG_FILENAME, "w");
+    CONFIG* output = malloc(sizeof(CONFIG));
+    output->iv = malloc(IV_LEN + 1);
+    char* iv = malloc(IV_LEN + 1);
+
+    iv = generate_password(((int) IV_LEN / 8));
+    fprintf(configFile, "iv %s\n", iv);
+    output->iv = iv;
+
+    fclose(configFile);
+    
+    return output;
 }

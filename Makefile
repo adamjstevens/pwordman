@@ -1,9 +1,21 @@
-all: clean pwordman
+all: clean pwm_crypto.o pwordman.o pwordman
 
-.PHONY: clean
-clean: pwordman.c pwordman.h
-	rm -rf pwordman *.o 
+.PHONY: clean 
+clean: cryptoclean pwordmanclean 
 
-.PHONY: pwordman
-pwordman: pwordman.c pwordman.h
-	gcc pwordman.c -lssl -lcrypto -o pwordman
+.PHONY: cryptoclean 
+cryptoclean:
+	-rm -f pwm_crypto.o 
+
+.PHONY: pwordmanclean
+pwordmanclean: 
+	-rm -f pwordman.o pwordman
+
+pwordman: pwordman.o 
+	gcc -lssl -lcrypto -o pwordman pwordman.o pwm_crypto.o
+
+pwordman.o:
+	gcc -lssl -lcrypto -Wall -pedantic -std=gnu99 -g -c pwordman.c 
+
+pwm_crypto.p:
+	gcc -lssl -lcrypto -Wall -pedantic -std=gnu99 -g -c pwm_crypto.c 
