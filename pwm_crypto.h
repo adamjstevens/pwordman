@@ -22,12 +22,20 @@ returns: Random char
 char random_char(void);
 
 /*
+*/
+char random_byte(void);
+
+/*
 Generates a random password 
 params:
     n: Length of the password 
 returns: Secure, random password of length n
 */
 char* generate_password(int n);
+
+/*
+*/
+unsigned char* generate_bytes(int n);
 
 /*
 Encrypts the file using AES256-CBC

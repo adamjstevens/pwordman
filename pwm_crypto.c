@@ -13,6 +13,19 @@ char random_char(void) {
     return buffer[0];
 }
 
+char random_byte(void) {
+    char buffer[1];
+
+    while (1) {
+        int rc = RAND_bytes(buffer, 1);
+        if (rc != 1) continue;
+        if (buffer[0] == 10 || buffer[0] == '\n') continue;
+        break;
+    }
+
+    return buffer[0];
+}
+
 char* generate_password(int n) {
     char* output = malloc(n + 1);
     memset(output, 0, sizeof(output));
@@ -20,6 +33,19 @@ char* generate_password(int n) {
     int i = 0;
     for (i = 0; i < n; i++) {
         output[i] = random_char();
+    }
+    output[i] = '\0';
+
+    return output;
+}
+
+unsigned char* generate_bytes(int n) {
+    char* output = malloc(n + 1);
+    memset(output, 0, sizeof(output));
+
+    int i = 0;
+    for (i = 0; i < n; i++) {
+        output[i] = random_byte();
     }
     output[i] = '\0';
 
