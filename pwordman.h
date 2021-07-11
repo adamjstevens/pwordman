@@ -79,6 +79,13 @@ params:
 void hidden_input(char* prompt, char *buf);
 
 /*
+Shows the password, with the ability to erase the password
+params: 
+    password: Password to show
+*/
+void show_password(char* password);
+
+/*
 Replaces a password in the list
 params: 
     pwords: passwords struct 

@@ -1,56 +1,5 @@
 #include "pwm_crypto.h"
 
-char random_char(void) {
-    char buffer[1];
-
-    while (1) {
-        int rc = RAND_bytes(buffer, 1);
-        if (rc != 1) continue;
-        if (buffer[0] < 33 || buffer[0] > 126) continue;
-        break;
-    }
-
-    return buffer[0];
-}
-
-unsigned char random_byte(void) {
-    char buffer[1];
-
-    while (1) {
-        int rc = RAND_bytes(buffer, 1);
-        if (rc != 1) continue;
-        break;
-    }
-
-    return buffer[0];
-}
-
-char* generate_password(int n) {
-    char* output = malloc(n + 1);
-    memset(output, 0, sizeof(output));
-
-    int i = 0;
-    for (i = 0; i < n; i++) {
-        output[i] = random_char();
-    }
-    output[i] = '\0';
-
-    return output;
-}
-
-unsigned char* generate_bytes(int n) {
-    char* output = malloc(n + 1);
-    memset(output, 0, sizeof(output));
-
-    int i = 0;
-    for (i = 0; i < n; i++) {
-        output[i] = random_byte();
-    }
-    output[i] = '\0';
-
-    return output;
-}
-
 void SHA256_CALC(char* string, unsigned char* hash) {
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
@@ -76,6 +25,17 @@ void generate_salted_password_hash(char* password,
     SHA256_CALC((char*) saltedPassword, saltedPasswordHash);
     strcpy((char*) buffer, (char*) saltedPasswordHash);
     // printf("%s\n", saltedPasswordHash);
+}
+
+void encrypt_to_file(char* plaintext, unsigned char* key, 
+        unsigned char* iv, FILE* outfile) {
+    int requiredLength = 16 * ((int) ceil((double) strlen(plaintext) / 16));
+    unsigned char* ciphertext = malloc(requiredLength + 2);
+    int ciphertext_len = encrypt(plaintext, key, iv, ciphertext);
+    char* plaintext_out = malloc(sizeof(plaintext));
+    fwrite(ciphertext, 1, ciphertext_len, outfile);
+    fflush(outfile);
+    free(ciphertext);
 }
 
 int encrypt(char* plaintext, unsigned char* key,
@@ -146,15 +106,62 @@ int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key,
     return plaintext_len;
 }
 
-void encrypt_to_file(char* plaintext, unsigned char* key, 
-        unsigned char* iv, FILE* outfile) {
-    int requiredLength = 16 * ((int) ceil((double) strlen(plaintext) / 16));
-    unsigned char* ciphertext = malloc(requiredLength + 2);
-    int ciphertext_len = encrypt(plaintext, key, iv, ciphertext);
-    char* plaintext_out = malloc(sizeof(plaintext));
-    fwrite(ciphertext, 1, ciphertext_len, outfile);
-    fflush(outfile);
-    free(ciphertext);
+char random_char(void) {
+    char buffer[1];
+
+    while (1) {
+        int rc = RAND_bytes(buffer, 1);
+        if (rc != 1) continue;
+        if (buffer[0] < 33 || buffer[0] > 126) continue;
+        break;
+    }
+
+    return buffer[0];
+}
+
+unsigned char random_byte(void) {
+    char buffer[1];
+
+    while (1) {
+        int rc = RAND_bytes(buffer, 1);
+        if (rc != 1) continue;
+        break;
+    }
+
+    return buffer[0];
+}
+
+char* generate_password(int n) {
+    char* output = malloc(n + 1);
+    memset(output, 0, sizeof(output));
+
+    int i = 0;
+    for (i = 0; i < n; i++) {
+        output[i] = random_char();
+    }
+    output[i] = '\0';
+
+    return output;
+}
+
+char* decrypt_cipherfile(cipherfile* cfile, unsigned char* key, 
+        unsigned char* iv) {
+    char* output = malloc(cfile->len);
+    decrypt(cfile->body, cfile->len, key, iv, output);
+    return output;
+}
+
+unsigned char* generate_bytes(int n) {
+    char* output = malloc(n + 1);
+    memset(output, 0, sizeof(output));
+
+    int i = 0;
+    for (i = 0; i < n; i++) {
+        output[i] = random_byte();
+    }
+    output[i] = '\0';
+
+    return output;
 }
 
 cipherfile* read_cipherfile(FILE* file) {
@@ -178,12 +185,5 @@ cipherfile* read_cipherfile(FILE* file) {
     }
     output->len = len;
 
-    return output;
-}
-
-char* decrypt_cipherfile(cipherfile* cfile, unsigned char* key, 
-        unsigned char* iv) {
-    char* output = malloc(cfile->len);
-    decrypt(cfile->body, cfile->len, key, iv, output);
     return output;
 }

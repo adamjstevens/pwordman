@@ -18,9 +18,9 @@ int main(int argc, char** argv) {
     }
     // Password
     char* password = malloc(INPUT_LIMIT + 1);
-    hidden_input("Enter your password: ", password);
+    hidden_input("Enter your master password: ", password);
     if (!password_matches(config, password)) {
-        printf("Incorrect password\n");
+        printf("Incorrect master password\n");
         exit(1);
     }
 
@@ -55,7 +55,8 @@ void handle_generate_command(passwords* pwords, int argc, char** argv) {
 
     if (has_password(pwords, domain, username)) {
         char* inp = input("Entry already exists. Would you like to generate a new password (y/n)? ");
-        if (strcmp(inp, "y") == 0) {
+        printf("%s\n", inp);
+        if (strcmp(inp, "y") == 0 || strcmp(inp, "Y") == 0) {
             replace_password(pwords, username, domain,
                     generate_password(password_len));
         }
@@ -73,7 +74,7 @@ void handle_generate_command(passwords* pwords, int argc, char** argv) {
     strcpy(p->username, username);
 
     pwords->p[pwords->n++] = *p;
-    printf("Password:\n%s\n", pass);
+    show_password(pass);
 }
 
 void hidden_input(char* prompt, char* buf) { 
@@ -114,7 +115,21 @@ void replace_password(passwords* pwords, char* username, char* domain,
             pwords->p[i].password = newPassword;
         }
     }
-    printf("Password:\n%s\n", newPassword);
+    show_password(newPassword);
+}
+
+void show_password(char* password) {
+    printf("Password below - Press [ENTER] once complete\n");
+    printf("%s  ", password);
+    input("");
+    // for (int i = 0; i < strlen(password); i++) {
+    //     printf("\b");
+    // }
+    printf("\033[1A]\r");
+    for (int i = 0; i < strlen(password); i++) {
+        printf(" ");
+    }
+    printf("\n");
 }
 
 char* pwords_to_str(passwords* pwords) {
@@ -139,7 +154,7 @@ char* get_entry(char** argv, passwords* ps) {
     for (int i = 0; i < ps->n; i++) {
         if (strcmp(ps->p[i].domain, domain) == 0 &&
                 strcmp(ps->p[i].username, username) == 0) {
-            printf("Password:\n%s\n", ps->p[i].password);
+            show_password(ps->p[i].password);
             return ps->p[i].password;
         }
     }
@@ -158,9 +173,9 @@ char* get_password_from_user(void) {
     char* password = malloc(INPUT_LIMIT);
     while (true) {
         password = malloc(INPUT_LIMIT + 1);
-        hidden_input("Set your password: ", password);
+        hidden_input("Set your master password: ", password);
         char* confirmPassword = malloc(INPUT_LIMIT + 1); 
-        hidden_input("Confirm your password: ", confirmPassword);
+        hidden_input("Confirm your master password: ", confirmPassword);
         if (strcmp(password, confirmPassword) == 0) {
             break;
         }
