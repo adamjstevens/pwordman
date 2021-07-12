@@ -1,6 +1,10 @@
 #include "pwordman.h"
 
 int main(int argc, char** argv) {
+    if (argc == 2 && strcmp(argv[1], "help") == 0) {
+        printf(HELP_TXT);
+        return 0;
+    }
     // Handling .pwm directory creation
     opendir(DIRECTORY);
     if (ENOENT == errno) {
@@ -27,16 +31,7 @@ int main(int argc, char** argv) {
     generate_salted_password_hash(password, config->salt2, key);
     passwords* pwords = read_file(key, config->iv);
     // Commands
-    if (argc > 1 && (strcmp(argv[1], "generate") == 0 || 
-            strcmp(argv[1], "gen") == 0)) {
-        handle_generate_command(pwords, argc, argv);
-    } else if (argc == 4 && strcmp(argv[1], "get") == 0) {
-        get_entry(argv, pwords);
-    } else if (argc == 4 && strcmp(argv[1], "set") == 0) {
-        set_password(pwords, argc, argv);
-    } else {
-        printf("Use ./pwordman help\n");
-    }
+    handle_commands(pwords, argc, argv);
     // Cleaning up
     FILE* outfile = fopen(ENC_FILE, "w");
     char* str_pwords = pwords_to_str(pwords);
@@ -44,8 +39,24 @@ int main(int argc, char** argv) {
     fclose(outfile);
     free(pwords);
     free(config);
-
     return 0;
+}
+
+void handle_commands(passwords* pwords, int argc, char** argv) {
+    if (argc == 5 && (strcmp(argv[1], "generate") == 0 || 
+            strcmp(argv[1], "gen") == 0)) {
+        handle_generate_command(pwords, argc, argv);
+    } else if (argc == 3 && (strcmp(argv[1], "generate") == 0 || 
+            strcmp(argv[1], "gen") == 0)) {
+        char* pass = generate_password(atoi(argv[2]));
+        show_password(pass, "", "");
+    } else if (argc == 4 && strcmp(argv[1], "get") == 0) {
+        get_entry(argv, pwords);
+    } else if (argc == 4 && strcmp(argv[1], "set") == 0) {
+        set_password(pwords, argc, argv);
+    } else {
+        printf("Use ./pwordman help\n");
+    }
 }
 
 void set_password(passwords* pwords, int argc, char** argv) {
@@ -139,9 +150,15 @@ void replace_password(passwords* pwords, char* username, char* domain,
 
 void show_password(char* password, char* username, char* domain) {
     char* msg = malloc(300);
-    sprintf(msg, "Press [ENTER] once complete\n\
+    if (strcmp(domain, "") != 0) {
+        sprintf(msg, "Press [ENTER] once complete\n\
 \nPassword for %s at domain %s:\n",
             username, domain);
+    } else {
+        sprintf(msg, "Press [ENTER] once complete\n\
+\nONE TIME PASSWORD\n");
+    }
+    
     printf(msg);
     printf("%s  ", password);
     input("");
@@ -152,7 +169,7 @@ void show_password(char* password, char* username, char* domain) {
         }
         printf("\n");
     }
-    printf("\n");
+    printf("\033[4A]\r");
 }
 
 void read_config_trait(FILE* infile, char* trait, int n, unsigned char* buf) {
