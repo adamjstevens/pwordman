@@ -1,40 +1,61 @@
 #include "pwordman.h"
 
+// STANDARD LIBRARIES
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <errno.h>
+#include <termios.h>
+
+// HEADER FILES
+#include "pwm_crypto.h"
+#include "constants.h"
+
+void usage(void) {
+    printf(HELP_TXT);
+    exit(0);
+}
+
 int main(int argc, char** argv) {
-    if (argc == 2 && strcmp(argv[1], "help") == 0) {
-        printf(HELP_TXT);
-        return 0;
-    }
-    // Handling .pwm directory creation
+    char *password, *str_pwords;
+    unsigned char key[SHA256_DIGEST_LENGTH + 1];
+    FILE *outfile;
+    CONFIG *config;
+    passwords *pwords;
+
+    if (argc == 2 && strcmp(argv[1], "help") == 0) usage();
+    if (valid_command(argc, argv) == 0) usage();
+
+    /* Handling .pwm directory creation */
     opendir(DIRECTORY);
-    if (ENOENT == errno) {
+    if (errno == ENOENT) {
         system("mkdir .pwm");
     }
-    // Handling CONFIG file
-    CONFIG* config;
-    if (access(".pwm/config", F_OK) == 0) { // Directory exists
+    /* Handling CONFIG file */
+    if (access(".pwm/config", F_OK) == 0) { /* Directory exists */
         config = read_config();
         if (config == NULL) {
             return -1;
         }
-    } else { // Directory does not exist
+    } else { /* Directory does not exist */
         config = initialise();
     }
-    // Password
-    char* password = malloc(INPUT_LIMIT + 1);
+    /* Password */
+    password = malloc(INPUT_LIMIT + 1);
     hidden_input("Enter your master password: ", password);
     if (!password_matches(config, password)) {
         printf("Incorrect master password\n");
         exit(1);
     }
-    unsigned char key[SHA256_DIGEST_LENGTH + 1];
     generate_salted_password_hash(password, config->salt2, key);
-    passwords* pwords = read_file(key, config->iv);
-    // Commands
+    pwords = read_file(key, config->iv);
+    /* Commands */
     handle_commands(pwords, argc, argv);
-    // Cleaning up
-    FILE* outfile = fopen(ENC_FILE, "w");
-    char* str_pwords = pwords_to_str(pwords);
+    /* Cleaning up */
+    outfile = fopen(ENC_FILE, "w");
+    str_pwords = pwords_to_str(pwords);
     encrypt_to_file(str_pwords, key, config->iv, outfile);
     fclose(outfile);
     free(pwords);
@@ -42,50 +63,60 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void handle_commands(passwords* pwords, int argc, char** argv) {
+int valid_command(int argc, char **argv) {
+    if (argc == 5 && (strcmp(argv[1], "generate") == 0 || 
+            strcmp(argv[1], "gen") == 0)) return 1;
+    else if (argc == 3 && (strcmp(argv[1], "generate") == 0 || 
+            strcmp(argv[1], "gen") == 0)) return 1;
+    else if (argc == 4 && strcmp(argv[1], "get") == 0) return 1;
+    else if (argc == 4 && strcmp(argv[1], "set") == 0) return 1;
+    return 0;
+}
+
+void handle_commands(passwords *pwords, int argc, char **argv) {
     if (argc == 5 && (strcmp(argv[1], "generate") == 0 || 
             strcmp(argv[1], "gen") == 0)) {
         handle_generate_command(pwords, argc, argv);
     } else if (argc == 3 && (strcmp(argv[1], "generate") == 0 || 
             strcmp(argv[1], "gen") == 0)) {
-        char* pass = generate_password(atoi(argv[2]));
+        char *pass = generate_password(atoi(argv[2]));
         show_password(pass, "", "");
     } else if (argc == 4 && strcmp(argv[1], "get") == 0) {
         get_entry(argv, pwords);
     } else if (argc == 4 && strcmp(argv[1], "set") == 0) {
         set_password(pwords, argc, argv);
     } else {
-        printf("Use ./pwordman help\n");
+        usage();
     }
 }
 
-void set_password(passwords* pwords, int argc, char** argv) {
-    char* username = argv[2];
-    char* domain = argv[3];
-    char* msg = malloc(300);
+void set_password(passwords *pwords, int argc, char **argv) {
+    char *username, *domain, *msg, *pass;
+    username = argv[2];
+    domain = argv[3];
+    msg = malloc(300);
     sprintf(msg, "Enter password for %s @ %s: ", username, domain);
-    char* pass = malloc(INPUT_LIMIT);
+    pass = malloc(INPUT_LIMIT);
     hidden_input(msg, pass);
     free(msg);
-
     if (has_password(pwords, domain, username)) {
         replace_password(pwords, username, domain, pass);
         return;
     }
-
     add_password(pwords, username, domain, pass);
     show_password(pass, username, domain);
     free(pass);
 }
 
-void handle_generate_command(passwords* pwords, int argc, char** argv) {
+void handle_generate_command(passwords *pwords, int argc, char **argv) {
     if (argc != 5) return;
-    char* username = argv[2];
-    char* domain = argv[3];
+    char *username = argv[2];
+    char *domain = argv[3];
     int password_len = atoi(argv[4]);
 
     if (has_password(pwords, domain, username)) {
-        char* inp = input("Entry already exists. Would you like to generate a new password (y/n)? ");
+        char *inp = input("Entry already exists. Would you like to generate a "
+            "new password (y/n)? ");
         if (strcmp(inp, "y\n") == 0 || strcmp(inp, "Y\n") == 0) {
             replace_password(pwords, username, domain,
                     generate_password(password_len));
@@ -98,9 +129,9 @@ void handle_generate_command(passwords* pwords, int argc, char** argv) {
     show_password(pass, username, domain);
 }
 
-void add_password(passwords* pwords, char* username, char* domain, 
-        char* pass) {
-    pword* p = malloc(sizeof(pword));
+void add_password(passwords *pwords, char *username, char *domain, 
+        char *pass) {
+    pword *p = malloc(sizeof(pword));
     p->domain = malloc(strlen(domain) + 1);
     p->username = malloc(strlen(username) + 1);
     p->password = malloc(strlen(pass) + 1);
@@ -111,11 +142,11 @@ void add_password(passwords* pwords, char* username, char* domain,
     pwords->p[pwords->n++] = *p;
 }
 
-void hidden_input(char* prompt, char* buf) { 
+void hidden_input(char *prompt, char *buf) { 
     static struct termios oldt, newt;
     int i = 0;
     printf("%s", prompt);
-    FILE* stream = fopen("/dev/tty", "r");
+    FILE *stream = fopen("/dev/tty", "r");
     tcgetattr(fileno(stream), &oldt);
     newt = oldt;
     newt.c_lflag &= ~(ECHO);
@@ -129,16 +160,16 @@ void hidden_input(char* prompt, char* buf) {
     tcsetattr(fileno(stream), TCSANOW, &oldt);
 }
 
-void init_iv(CONFIG* config, FILE* configFile) {
-    unsigned char* iv = malloc(IV_LEN + 1);
-    iv = (unsigned char*) generate_bytes(((int) IV_LEN));
+void init_iv(CONFIG *config, FILE *configFile) {
+    unsigned char *iv = malloc(IV_LEN + 1);
+    iv = (unsigned char*)generate_bytes(((int) IV_LEN));
     iv[IV_LEN] = 0;
     fprintf(configFile, "iv %s\n", iv);
     config->iv = iv;
 }
 
-void replace_password(passwords* pwords, char* username, char* domain, 
-        char* newPassword) {
+void replace_password(passwords *pwords, char *username, char *domain, 
+        char *newPassword) {
     for (int i = 0; i < pwords->n; i++) {
         if (strcmp(username, pwords->p[i].username) == 0 &&
                 strcmp(domain, pwords->p[i].domain) == 0) {
@@ -148,8 +179,8 @@ void replace_password(passwords* pwords, char* username, char* domain,
     show_password(newPassword, username, domain);
 }
 
-void show_password(char* password, char* username, char* domain) {
-    char* msg = malloc(300);
+void show_password(char *password, char *username, char *domain) {
+    char *msg = malloc(300);
     if (strcmp(domain, "") != 0) {
         sprintf(msg, "Press [ENTER] once complete\n\
 \nPassword for %s at domain %s:\n",
@@ -172,33 +203,33 @@ void show_password(char* password, char* username, char* domain) {
     printf("\033[4A]\r");
 }
 
-void read_config_trait(FILE* infile, char* trait, int n, unsigned char* buf) {
-    // Trait name + " "
+void read_config_trait(FILE *infile, char *trait, int n, unsigned char *buf) {
+    /* Trait name + " " */
     for (int i = 0; i <= strlen(trait); i++) {
         int c = fgetc(infile);
         if (c == EOF) {
             return;
         }
     }
-    // Value
+    /* Value */
     for (int i = 0; i < n; i++) {
         buf[i] = fgetc(infile);
         if (buf[i] == EOF) {
             return;
         }
     }
-    // Newline
+    /* Newline */
     int c = fgetc(infile);
     if (c == EOF) {
         return;
     }
 }
 
-char* pwords_to_str(passwords* pwords) {
-    char* output = malloc(pwords->n * 3 * INPUT_LIMIT);
+char* pwords_to_str(passwords *pwords) {
+    char *output = malloc(pwords->n * 3 * INPUT_LIMIT);
     output[0] = 0;
     for (int i = 0; i < pwords->n; i++) {
-        char* line = malloc(INPUT_LIMIT * 3);
+        char *line = malloc(INPUT_LIMIT * 3);
         sprintf(line, "%s %s %s\n", 
                 pwords->p[i].username, 
                 pwords->p[i].domain, 
@@ -208,7 +239,7 @@ char* pwords_to_str(passwords* pwords) {
     return output;
 }
 
-char* get_entry(char** argv, passwords* ps) {
+char* get_entry(char **argv, passwords *ps) {
     char* username = argv[2];
     char* domain = argv[3];
     for (int i = 0; i < ps->n; i++) {
@@ -222,7 +253,7 @@ char* get_entry(char** argv, passwords* ps) {
     return NULL;
 }
 
-char* input(char* prompt) {
+char* input(char *prompt) {
     printf("%s", prompt);
     char* inp = malloc(INPUT_LIMIT);
     fgets(inp, INPUT_LIMIT, stdin);
@@ -230,13 +261,14 @@ char* input(char* prompt) {
 }
 
 char* get_password_from_user(void) {
-    char* password = malloc(INPUT_LIMIT);
+    char *password = malloc(INPUT_LIMIT);
     printf(SEPERATOR);
-    printf("Looks like this is your first time using pwordman, please set a master password below.\n");
-    while (true) {
+    printf("Looks like this is your first time using pwordman, please set a "
+        "master password below.\n");
+    while (1) {
         password = malloc(INPUT_LIMIT + 1);
         hidden_input("Set your master password: ", password);
-        char* confirmPassword = malloc(INPUT_LIMIT + 1); 
+        char *confirmPassword = malloc(INPUT_LIMIT + 1); 
         hidden_input("Confirm your master password: ", confirmPassword);
         if (strcmp(password, confirmPassword) == 0) {
             break;
@@ -246,26 +278,26 @@ char* get_password_from_user(void) {
     return password;
 }
 
-unsigned char* init_salt(CONFIG* config, FILE* configFile, char* label) {
-    unsigned char* salt = malloc(SALT_LEN + 1);
+unsigned char* init_salt(CONFIG *config, FILE *configFile, char *label) {
+    unsigned char *salt = malloc(SALT_LEN + 1);
     salt = (unsigned char*) generate_bytes(SALT_LEN);
     salt[SALT_LEN] = 0;
     fprintf(configFile, "%s %s\n", label, salt);
     return salt;
 }
 
-passwords* read_file(unsigned char* key, unsigned char* iv) {
-    pword* pwords = malloc(sizeof(pword) * 500);   
-    FILE* cfile = fopen(ENC_FILE, "r");
+passwords* read_file(unsigned char *key, unsigned char *iv) {
+    pword *pwords = malloc(sizeof(pword) * 500);   
+    FILE *cfile = fopen(ENC_FILE, "r");
 
     if (cfile == NULL) {
-        passwords* output = malloc(sizeof(passwords));
+        passwords *output = malloc(sizeof(passwords));
         output->p = pwords;
         output->n = 0;
         return output;
     }
 
-    cipherfile* cf = read_cipherfile(cfile);
+    cipherfile *cf = read_cipherfile(cfile);
     fclose(cfile);
     char* plaintext = decrypt_cipherfile(cf, key, iv);
     int i = 0;
@@ -284,7 +316,7 @@ passwords* read_file(unsigned char* key, unsigned char* iv) {
         domain = strtok_r(NULL, " ", &saveLine);
         password = strtok_r(NULL, " ", &saveLine);
 
-        pword* p = malloc(sizeof(pword));
+        pword *p = malloc(sizeof(pword));
         p->username = malloc(INPUT_LIMIT);
         p->domain = malloc(INPUT_LIMIT);
         p->password = malloc(INPUT_LIMIT);
@@ -297,15 +329,15 @@ passwords* read_file(unsigned char* key, unsigned char* iv) {
         line = strtok_r(NULL, delim, &savePlain);
     }
 
-    passwords* output = malloc(sizeof(passwords));
+    passwords *output = malloc(sizeof(passwords));
     output->p = pwords;
     output->n = i;
     return output;
 }
 
 CONFIG* read_config(void) {
-    CONFIG* output = malloc(sizeof(CONFIG));
-    FILE* configFile = fopen(CONFIG_FILENAME, "r");
+    CONFIG *output = malloc(sizeof(CONFIG));
+    FILE *configFile = fopen(CONFIG_FILENAME, "r");
     // Allocating memory 
     output->iv = malloc(IV_LEN);
     output->salt1 = malloc(SALT_LEN);
@@ -324,8 +356,8 @@ CONFIG* read_config(void) {
 }
 
 CONFIG* initialise(void) {
-    FILE* configFile = fopen(CONFIG_FILENAME, "w");
-    CONFIG* output = malloc(sizeof(CONFIG));
+    FILE *configFile = fopen(CONFIG_FILENAME, "w");
+    CONFIG *output = malloc(sizeof(CONFIG));
     output->iv = malloc(IV_LEN + 1);
     // Initialise IV
     init_iv(output, configFile);
@@ -333,9 +365,9 @@ CONFIG* initialise(void) {
     output->salt1 = init_salt(output, configFile, "salt1");
     output->salt2 = init_salt(output, configFile, "salt2");
     // Initialise password 
-    char* password = get_password_from_user();
+    char *password = get_password_from_user();
     // Generate salted password
-    unsigned char* saltedPasswordHash = malloc(SHA256_DIGEST_LENGTH + 1);
+    unsigned char *saltedPasswordHash = malloc(SHA256_DIGEST_LENGTH + 1);
     generate_salted_password_hash(password, output->salt1, saltedPasswordHash);
     fprintf(configFile, "salted_pword ");
     fwrite(saltedPasswordHash, 1, SHA256_DIGEST_LENGTH, configFile);
@@ -346,34 +378,35 @@ CONFIG* initialise(void) {
     return output;
 }
 
-bool is_str_empty(char* str) {
+int is_str_empty(char *str) {
     int i = 0; 
     while(str[i] != '\0') {
         if (!(str[i] < 32 || str[i] > 126)) {
-            return false;
+            return 0;
         }
         i++;
     }
-    return true;;
+    return 1;
 }
 
-bool has_password(passwords* pwords, char* domain, char* username) {
+int has_password(passwords *pwords, char *domain, char *username) {
     for (int i = 0; i < pwords->n; i++) {
         if ((strcmp(pwords->p[i].username, username) == 0) && 
                 strcmp(pwords->p[i].domain, domain) == 0) {
-            return true;
+            return 1;
         }
     }
-    return false;
+    return 0;
 }
 
-bool password_matches(CONFIG* config, char* password) {
-    unsigned char* saltedPasswordHash = malloc(SHA256_DIGEST_LENGTH + 1);
+int password_matches(CONFIG *config, char *password) {
+    unsigned char *saltedPasswordHash;
+    saltedPasswordHash = malloc(SHA256_DIGEST_LENGTH + 1);
     generate_salted_password_hash(password, config->salt1, saltedPasswordHash);
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) { 
         if (saltedPasswordHash[i] != config->saltedPwordHash[i]) {
-            return false;
+            return 0;
         }
     }
-    return true;
+    return 1;
 }

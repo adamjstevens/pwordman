@@ -10,9 +10,9 @@
 
 // TEXT
 #define SEPERATOR "----------------------------\n"
-#define HELP_TXT "\n\
+#define HELP_TXT "\
 pwordman is a password manager.\n\
-Below are the commands:\n\n\
+Usage:\n\
 \
 \tpwordman help\n\
 \t\tPrints the help menu.\n\n\
@@ -30,8 +30,7 @@ Below are the commands:\n\n\
 \t\ta custom password provided by the user.\n\n\
 \
 \tpwordman get {username} {domain}\n\
-\t\tGets the password for a specific username/domain combination.\n\n\n\
-"
+\t\tGets the password for a specific username/domain combination.\n"
 
 // LENGTHS 
 #define IV_LEN 128 / 8

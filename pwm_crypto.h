@@ -1,15 +1,7 @@
 #ifndef PWM_CRYPTO
 #define PWM_CRYPTO
 
-// STANDARD LIBRARIES
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-#include <math.h>
-
-// CRYPTO LIBRARIES
+/* CRYPTO LIBRARIES */
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/conf.h>
