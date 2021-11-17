@@ -1,6 +1,6 @@
 #include "pwordman.h"
 
-// STANDARD LIBRARIES
+/* STANDARD LIBRARIES */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <termios.h>
 
-// HEADER FILES
+/* HEADER FILES */
 #include "pwm_crypto.h"
 #include "constants.h"
 
@@ -182,12 +182,12 @@ void replace_password(passwords *pwords, char *username, char *domain,
 void show_password(char *password, char *username, char *domain) {
     char *msg = malloc(300);
     if (strcmp(domain, "") != 0) {
-        sprintf(msg, "Press [ENTER] once complete\n\
-\nPassword for %s at domain %s:\n",
+        sprintf(msg, "Press [ENTER] once complete\n\n"
+            "Password for %s at domain %s:\n",
             username, domain);
     } else {
-        sprintf(msg, "Press [ENTER] once complete\n\
-\nONE TIME PASSWORD\n");
+        sprintf(msg, "Press [ENTER] once complete\n\n"
+            "ONE TIME PASSWORD\n");
     }
     
     printf(msg);
@@ -338,12 +338,12 @@ passwords* read_file(unsigned char *key, unsigned char *iv) {
 CONFIG* read_config(void) {
     CONFIG *output = malloc(sizeof(CONFIG));
     FILE *configFile = fopen(CONFIG_FILENAME, "r");
-    // Allocating memory 
+    /* Allocating memory  */
     output->iv = malloc(IV_LEN);
     output->salt1 = malloc(SALT_LEN);
     output->salt2 = malloc(SALT_LEN);
     output->saltedPwordHash = malloc(SHA256_DIGEST_LENGTH);
-    // Reading traits
+    /* Reading traits */
     read_config_trait(configFile, "iv", IV_LEN, output->iv);
     read_config_trait(configFile, "salt1", SALT_LEN, output->salt1);
     read_config_trait(configFile, "salt2", SALT_LEN, output->salt2);
@@ -359,14 +359,14 @@ CONFIG* initialise(void) {
     FILE *configFile = fopen(CONFIG_FILENAME, "w");
     CONFIG *output = malloc(sizeof(CONFIG));
     output->iv = malloc(IV_LEN + 1);
-    // Initialise IV
+    /* Initialise IV */
     init_iv(output, configFile);
-    // Initialise salt
+    /* Initialise salt */
     output->salt1 = init_salt(output, configFile, "salt1");
     output->salt2 = init_salt(output, configFile, "salt2");
-    // Initialise password 
+    /* Initialise password  */
     char *password = get_password_from_user();
-    // Generate salted password
+    /* Generate salted password */
     unsigned char *saltedPasswordHash = malloc(SHA256_DIGEST_LENGTH + 1);
     generate_salted_password_hash(password, output->salt1, saltedPasswordHash);
     fprintf(configFile, "salted_pword ");

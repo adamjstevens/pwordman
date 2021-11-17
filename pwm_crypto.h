@@ -8,7 +8,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-// HEADER FILES 
+/* HEADER FILES  */
 #include "constants.h"
 
 /*
