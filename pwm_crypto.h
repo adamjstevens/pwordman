@@ -15,7 +15,7 @@
 Keeps track of the body of the file and the length
 */
 typedef struct {
-    unsigned char* body;
+    unsigned char *body;
     int len;
 } cipherfile;
 
@@ -27,8 +27,8 @@ params:
     iv: Initialisation vector to use in encryption
     outfile: File to write ciphertext to
 */
-void encrypt_to_file(char* plaintext, unsigned char* key, 
-        unsigned char* iv, FILE* outfile);
+void encrypt_to_file(char *plaintext, unsigned char *key, 
+        unsigned char *iv, FILE *outfile);
 
 /*
 Encrypts the file using AES256-CBC
@@ -36,7 +36,7 @@ params:
     plainfile: Filename of the plaintext
     ivfile: Filename of the file with the initialisation vector
 */
-void encrypt_file(char* plainfile, char* ivfile);
+void encrypt_file(char *plainfile, char *ivfile);
 
 /*
 Generates a SHA256 hash (in string format)
@@ -44,7 +44,7 @@ params:
     string: String to generate hash from 
     hash: Buffer to write output to
 */
-void SHA256_CALC(char* string, unsigned char* hash);
+void SHA256_CALC(char *string, unsigned char *hash);
 
 /*
 Encrypts the plaintext using AES256-CBC
@@ -55,8 +55,8 @@ params:
     ciphertext: Buffer to write to
 returns: length of the ciphertext
 */
-int encrypt(char* plaintext, unsigned char* key,
-        unsigned char* iv, unsigned char* ciphertext);
+int encrypt(char *plaintext, unsigned char *key,
+        unsigned char *iv, unsigned char *ciphertext);
 
 
 /*
@@ -69,8 +69,8 @@ params:
     plaintext: Buffer to write to
 returns: length of the plaintext
 */
-int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, 
-        unsigned char* iv, char* plaintext);
+int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, 
+        unsigned char *iv, char *plaintext);
 
 /*
 Generates a random character (ASCII-readable)
@@ -99,8 +99,8 @@ params:
     iv: Initialisation vector to use in decryption
 returns: Decrypted body (plaintext)
 */
-char* decrypt_cipherfile(cipherfile* cfile, unsigned char* key, 
-        unsigned char* iv);
+char* decrypt_cipherfile(cipherfile *cfile, unsigned char *key, 
+        unsigned char *iv);
 
 /*
 Generates random bytes using random_byte()
@@ -116,6 +116,6 @@ params:
     file: File to read from 
 returns: cipherfile struct
 */
-cipherfile* read_cipherfile(FILE* file);
+cipherfile* read_cipherfile(FILE *file);
 
 #endif

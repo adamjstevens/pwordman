@@ -124,7 +124,7 @@ void handle_generate_command(passwords *pwords, int argc, char **argv) {
         return;
     }
     
-    char* pass = generate_password(password_len);
+    char *pass = generate_password(password_len);
     add_password(pwords, username, domain, pass);
     show_password(pass, username, domain);
 }
@@ -240,8 +240,8 @@ char* pwords_to_str(passwords *pwords) {
 }
 
 char* get_entry(char **argv, passwords *ps) {
-    char* username = argv[2];
-    char* domain = argv[3];
+    char *username = argv[2];
+    char *domain = argv[3];
     for (int i = 0; i < ps->n; i++) {
         if (strcmp(ps->p[i].domain, domain) == 0 &&
                 strcmp(ps->p[i].username, username) == 0) {
@@ -255,7 +255,7 @@ char* get_entry(char **argv, passwords *ps) {
 
 char* input(char *prompt) {
     printf("%s", prompt);
-    char* inp = malloc(INPUT_LIMIT);
+    char *inp = malloc(INPUT_LIMIT);
     fgets(inp, INPUT_LIMIT, stdin);
     return inp;
 }
@@ -299,19 +299,19 @@ passwords* read_file(unsigned char *key, unsigned char *iv) {
 
     cipherfile *cf = read_cipherfile(cfile);
     fclose(cfile);
-    char* plaintext = decrypt_cipherfile(cf, key, iv);
+    char *plaintext = decrypt_cipherfile(cf, key, iv);
     int i = 0;
     size_t len = 200;
-    char* line = malloc(len);
+    char *line = malloc(len);
     const char delim[2] = "\n";
     char *savePlain;
     line = strtok_r(plaintext, delim, &savePlain);
     while (line != NULL) {
         if (strlen(line) < 5 || is_str_empty(line)) break;
-        char* username = malloc(INPUT_LIMIT);
-        char* domain = malloc(INPUT_LIMIT);
-        char* password = malloc(PASSWORD_LENGTH);
-        char* saveLine;
+        char *username = malloc(INPUT_LIMIT);
+        char *domain = malloc(INPUT_LIMIT);
+        char *password = malloc(PASSWORD_LENGTH);
+        char *saveLine;
         username = strtok_r(line, " ", &saveLine);
         domain = strtok_r(NULL, " ", &saveLine);
         password = strtok_r(NULL, " ", &saveLine);

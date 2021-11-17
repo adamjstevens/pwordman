@@ -7,7 +7,7 @@
 
 #include "pwm_crypto.h"
 
-void SHA256_CALC(char* string, unsigned char* hash) {
+void SHA256_CALC(char *string, unsigned char *hash) {
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
     SHA256_Update(&sha256, string, strlen(string));

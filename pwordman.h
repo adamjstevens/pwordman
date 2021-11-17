@@ -7,16 +7,16 @@
 The pword struct defines a single password
 */
 typedef struct {
-    char* username;
-    char* domain;
-    char* password;
+    char *username;
+    char *domain;
+    char *password;
 } pword;
 
 /*
 The passwords struct defines a list of passwords with a count
 */
 typedef struct {
-    pword* p;
+    pword *p;
     int n;
 } passwords;
 
@@ -24,10 +24,10 @@ typedef struct {
 The CONFIG struct represents the config attributes
 */
 typedef struct {
-    unsigned char* iv; 
-    unsigned char* salt1; 
-    unsigned char* salt2; 
-    unsigned char* saltedPwordHash;
+    unsigned char *iv; 
+    unsigned char *salt1; 
+    unsigned char *salt2; 
+    unsigned char *saltedPwordHash;
 } CONFIG;
 
 /*
